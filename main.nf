@@ -52,7 +52,6 @@ process bcl2fastq {
     """
 }
 
-//Channel.fromPath('temp/*fastq.gz').into { fastq_ch1; fastq_ch2 }
 // Get sample names from FASTQ filenames.
 samplenames_ch = fastq_ch1.map { it.toString() }
     .map { it.replaceAll(/\/.*\//, "") }  // Remove everything leading up to the sample name.
@@ -80,59 +79,6 @@ process merge {
     zcat $sample\\_*R2*.fastq.gz | gzip -c > $sample\\_R2.fastq.gz
     """
 }
-
-
-// Old code. TODO: remove.
-
-//fastq_ch = Channel.fromFilePairs('temp/FN000001*_R{1,2}*fastq.gz')
-//fastq_ch.subscribe { println it }
-//fastq_ch.println()
-
-//out_ch = Channel.from('~/Documents/docker_fun/demux/temp')
-//out_ch.subscribe {out_dir ->
-//    fastq_ch = Channel.fromPath(out_dir + '/*.fastq.gz')
-//}
-//fastq_ch.println()
-
-
-
-//// Get the "Data" section of the sample sheet, so we may extract the sample names from there.
-//process get_ss_data {
-//    output:
-//    file 'samplesheet_data.csv' into samplesheet_data_ch
-//
-//    script:
-//    """
-//    # Use awk to print everything starting from the line containing [Data].
-//    # Discard the first line using tail.
-//    cat $samplesheet \
-//        | awk '/\\[Data\\]/,EOF' \
-//        | tail -n +2 \
-//        > samplesheet_data.csv
-//    """
-//}
-//
-//// Read the "Data" section from the sample sheet as a CSV, and extract the sample names.
-//samplenames_ch = samplesheet_data_ch.splitCsv(header: true)
-//    .map { it.Sample_Name }
-//    .unique()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

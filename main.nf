@@ -84,43 +84,43 @@ process merge {
 // Run FastQC for QC metrics of raw data.
 // Note that FastQC will allocate 250 MB of memory per thread used.
 // TODO: how many threads are needed?
-process fastqc_analysis {
-    memory = "250MB"
-    cpus = 1
-
-    publishDir "$outdir/fastqc", mode: 'copy',
-        saveAs: {filename -> filename.indexOf(".zip") > 0 ? "zips/$filename" : "$filename"}
-
-    input:
-    set fastq from fastq_fastqc_ch
-
-    output:
-    set sample, file('*.{zip,html}') into fastqc_report_ch
-    set sample, file('.command.out') into fastqc_stdout_ch
-
-    script:
-    """
-    unset DISPLAY
-    mkdir tmp
-    fastqc -q --dir tmp --outdir . $fastq
-    """
-}
-
-process multiqc {
-    publishDir "$outdir/multiqc", mode: 'copy', overwrite: true
-
-    input:
-    val status from status_ch
-
-    output:
-    file "multiqc_report.html" into multiqc_report_ch
-    file "multiqc_data" into multiqc_data_ch
-
-    script:
-    """
-    multiqc -f $outdir --config ${params.multiqc_config}
-    """
-}
+//process fastqc_analysis {
+//    memory = "250MB"
+//    cpus = 1
+//
+//    publishDir "$outdir/fastqc", mode: 'copy',
+//        saveAs: {filename -> filename.indexOf(".zip") > 0 ? "zips/$filename" : "$filename"}
+//
+//    input:
+//    set fastq from fastq_fastqc_ch
+//
+//    output:
+//    set sample, file('*.{zip,html}') into fastqc_report_ch
+//    set sample, file('.command.out') into fastqc_stdout_ch
+//
+//    script:
+//    """
+//    unset DISPLAY
+//    mkdir tmp
+//    fastqc -q --dir tmp --outdir . $fastq
+//    """
+//}
+//
+//process multiqc {
+//    publishDir "$outdir/multiqc", mode: 'copy', overwrite: true
+//
+//    input:
+//    val status from status_ch
+//
+//    output:
+//    file "multiqc_report.html" into multiqc_report_ch
+//    file "multiqc_data" into multiqc_data_ch
+//
+//    script:
+//    """
+//    multiqc -f $outdir --config ${params.multiqc_config}
+//    """
+//}
 
 
 

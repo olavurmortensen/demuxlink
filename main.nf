@@ -120,21 +120,3 @@ process fastqc_analysis {
     """
 }
 
-//process multiqc {
-//    publishDir "$outdir/multiqc", mode: 'copy', overwrite: true
-//
-//    input:
-//    val status from status_ch
-//
-//    output:
-//    file "multiqc_report.html" into multiqc_report_ch
-//    file "multiqc_data" into multiqc_data_ch
-//
-//    script:
-//    """
-//    multiqc -f $outdir --config ${params.multiqc_config}
-//    """
-//}
-
-
-

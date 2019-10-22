@@ -46,12 +46,16 @@ println "interop_dir         : ${interop_dir}"
 // As --use-bases-mask is not specified, RunInfo.xml will be used to determine the base masking.
 // Adapter sequences (read 1 and read2) should be contained in the sample sheet.
 // TODO:
-// reading, writing and processing threads (p, r and w) parameter.
-// Memory and cores?
-// Do I need any of the extra parameters in longranger's call to bcl2fastq?
+// I don't know whether I need the following arguments, which I took from longranger's call to bcl2fastq.
+// --minimum-trimmed-read-length 8 \
+// --mask-short-adapter-reads 8 \
+// --create-fastq-for-index-reads \
+// --ignore-missing-positions \
+// --ignore-missing-filter \
+// --ignore-missing-bcls \
 process bcl2fastq {
     output:
-    file "outs/*/*fastq.gz" into fastq_samplenames_ch
+    file "outs/*fastq.gz" into fastq_samplenames_ch
 
     script:
     if(params.threads > 20) {
@@ -77,9 +81,15 @@ process bcl2fastq {
         -o outs \
         --interop-dir interop \
         --sample-sheet $samplesheet \
+        --use-bases-mask Y*,I*,Y* \
+        --minimum-trimmed-read-length 8 \
+        --mask-short-adapter-reads 8 \
+        --create-fastq-for-index-reads \
+        --ignore-missing-positions \
+        --ignore-missing-filter \
+        --ignore-missing-bcls \
         -p $p_threads -r $r_threads -w $w_threads
-    # longranger bcl2fastq call is:
-    #bcl2fastq --minimum-trimmed-read-length 8 --mask-short-adapter-reads 8 --create-fastq-for-index-reads --ignore-missing-positions --ignore-missing-filter --ignore-missing-bcls --use-bases-mask=Y151,I8,Y151 -R $rundir --output-dir=$outdir --interop-dir=$interop_dir --sample-sheet=$samplesheet -p 6 -r 6 -w 6
+        #--use-bases-mask Y151,I8,Y151 \
     """
 }
 
@@ -98,6 +108,7 @@ fastq_ch = fastq_samplenames_ch.flatten()
 
 // Since 10x samples have multiple indexes per sample, we merge these.
 // Since this process is only concatenating (cat) and zipping files, it doesn't need much memory or many cores.
+// We use the "when" directive to avoid processing the "Undetermined" sample.
 process merge {
     memory = "250MB"
     cpus = 1
@@ -109,6 +120,9 @@ process merge {
 
     output:
     set sample, file("$sample*fastq.gz") into fastq_qc_ch
+
+    when:
+    key[0] != "Undetermined"
 
     script:
     sample = key[0]

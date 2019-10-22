@@ -3,8 +3,6 @@
 params.rundir = null
 params.outdir = null
 params.samplesheet = null
-params.threads = null
-params.mem = null
 params.help = false
 
 helpMessage = """
@@ -12,8 +10,6 @@ helpMessage = """
     rundir:         Path to FASTQ run directory.
     outdir:         Where to store output data.
     samplesheet:    Path to sample sheet.
-    threads:        Number of threads to use.
-    mem:            Amount of memory to use (e.g. "10 GB").
     """.stripIndent()
 
 if (params.help) {
@@ -24,11 +20,6 @@ if (params.help) {
 assert params.rundir != null, 'Input parameter "rundir" cannot be unassigned.'
 assert params.outdir != null, 'Input parameter "outdir" cannot be unassigned.'
 assert params.samplesheet != null, 'Input parameter "samplesheet" cannot be unassigned.'
-assert params.mem != null, 'Input parameter "mem" cannot be unassigned.'
-
-if(params.threads == null) {
-    params.threads = 1
-}
 
 rundir = file(params.rundir)
 outdir = file(params.outdir)
@@ -43,31 +34,24 @@ println "samplesheet         : ${samplesheet}"
 println "interop_dir         : ${interop_dir}"
 
 // Call bcl2fastq, performing simultaneous basecalling and demultiplexing.
-// As --use-bases-mask is not specified, RunInfo.xml will be used to determine the base masking.
+// --use-bases-mask will use RunInfo.xml (in the run directory) to determine the length of read 1 and 2
+// and of the index.
 // Adapter sequences (read 1 and read2) should be contained in the sample sheet.
-// TODO:
-// I don't know whether I need the following arguments, which I took from longranger's call to bcl2fastq.
-// --minimum-trimmed-read-length 8 \
-// --mask-short-adapter-reads 8 \
-// --create-fastq-for-index-reads \
-// --ignore-missing-positions \
-// --ignore-missing-filter \
-// --ignore-missing-bcls \
 process bcl2fastq {
     output:
     file "outs/*fastq.gz" into fastq_samplenames_ch
 
     script:
-    if(params.threads > 20) {
-        p_threads = params.threads - 8
+    if(task.cpus > 20) {
+        p_threads = task.cpus - 8
         w_threads = 4
         r_threads = 4
-    } else if(params.threads > 10) {
-        p_threads = params.threads - 2
+    } else if(task.cpus > 10) {
+        p_threads = task.cpus - 2
         w_threads = 1
         r_threads = 1
-    } else if(params.threads > 3) {
-        p_threads = params.threads - 2
+    } else if(task.cpus > 3) {
+        p_threads = task.cpus - 2
         w_threads = 1
         r_threads = 1
     } else {
@@ -89,7 +73,6 @@ process bcl2fastq {
         --ignore-missing-filter \
         --ignore-missing-bcls \
         -p $p_threads -r $r_threads -w $w_threads
-        #--use-bases-mask Y151,I8,Y151 \
     """
 }
 
@@ -137,25 +120,10 @@ process merge {
 // and file path). Group tuple by key so that we have all files in the sample in one channel element.
 fastq_qc_ch = fastq_qc_ch.groupTuple()
 
-// FastQC allocates 250 MB of memory per thread used. Therefore, we need to calculate
-// how many threads we can "afford", given how much memory we have available.
-// The maximum number of threads we can use.
-fastqc_threads = Math.floor((params.mem as nextflow.util.MemoryUnit).toMega() / 250) as Integer
-
-// If the calculated number of threads is greater than the available amount, we default to that.
-fastqc_threads =  Math.min(fastqc_threads, params.threads)
-
-// The number of bytes of memory that corresponds to.
-mem_b = 250 * 1048576 * (fastqc_threads as Long)
-
-// Memory in megabytes.
-fastqc_mem = (mem_b as nextflow.util.MemoryUnit).toMega()
-
 // Run FastQC for QC metrics of raw data.
 process fastqc_analysis {
-    // Use the memory and threads calculated above.
-    memory = fastqc_mem
-    cpus = fastqc_threads
+    memory = "1 GB"
+    cpus = 4
 
     publishDir "$outdir/fastqc/$sample", mode: 'copy',
         saveAs: {filename -> filename.indexOf(".zip") > 0 ? "zips/$filename" : "$filename"}
@@ -173,7 +141,7 @@ process fastqc_analysis {
     # We unset the DISPLAY variable to avoid having FastQC try to open the GUI.
     unset DISPLAY
     mkdir tmp
-    fastqc -q --dir tmp --threads $fastqc_threads --outdir . $fastq_list
+    fastqc -q --dir tmp --threads ${task.cpus} --outdir . $fastq_list
     """
 }
 

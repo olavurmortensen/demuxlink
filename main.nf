@@ -38,6 +38,8 @@ println "interop_dir         : ${interop_dir}"
 // and of the index.
 // Adapter sequences (read 1 and read2) should be contained in the sample sheet.
 process bcl2fastq {
+    publishDir '$outdir/fastq_out', mode: 'copy', pattern: '.command.log', saveAs: {filename -> 'bcl2fastq.log'}
+
     output:
     file "outs/*fastq.gz" into fastq_samplenames_ch
 
@@ -68,7 +70,6 @@ process bcl2fastq {
         --use-bases-mask Y*,I*,Y* \
         --minimum-trimmed-read-length 8 \
         --mask-short-adapter-reads 8 \
-        --create-fastq-for-index-reads \
         --ignore-missing-positions \
         --ignore-missing-filter \
         --ignore-missing-bcls \
@@ -125,15 +126,17 @@ process fastqc_analysis {
     memory = "1 GB"
     cpus = 4
 
-    publishDir "$outdir/fastqc/$sample", mode: 'copy',
-        saveAs: {filename -> filename.indexOf(".zip") > 0 ? "zips/$filename" : "$filename"}
+    publishDir '$outdir/fastqc/$sample', mode: 'copy', pattern: '{zip,html}',
+        saveAs: {filename -> filename.indexOf('.zip') > 0 ? 'zips/$filename' : '$filename'}
+    publishDir '$oudtir/fastqc/$sample', mode: 'copy', pattern: '.command.log',
+        saveAs: {filename -> 'fastqc.log'}
 
     input:
     set sample, file(fastqs) from fastq_qc_ch
 
     output:
     set sample, file('*.{zip,html}') into fastqc_report_ch
-    set sample, file('.command.out') into fastqc_stdout_ch
+    set sample, file('.command.log') into fastqc_stdout_ch
 
     script:
     fastq_list = (fastqs as List).join(' ')

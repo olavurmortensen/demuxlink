@@ -38,10 +38,11 @@ println "interop_dir         : ${interop_dir}"
 // and of the index.
 // Adapter sequences (read 1 and read2) should be contained in the sample sheet.
 process bcl2fastq {
-    publishDir '$outdir/fastq_out', mode: 'copy', pattern: '.command.log', saveAs: {filename -> 'bcl2fastq.log'}
+    publishDir "$outdir/fastq_out", mode: 'copy', pattern: '.command.log', saveAs: {filename -> 'bcl2fastq.log'}
 
     output:
     file "outs/*fastq.gz" into fastq_samplenames_ch
+    file '.command.log'
 
     script:
     if(task.cpus > 20) {
@@ -126,9 +127,9 @@ process fastqc_analysis {
     memory = "1 GB"
     cpus = 4
 
-    publishDir '$outdir/fastqc/$sample', mode: 'copy', pattern: '{zip,html}',
-        saveAs: {filename -> filename.indexOf('.zip') > 0 ? 'zips/$filename' : '$filename'}
-    publishDir '$oudtir/fastqc/$sample', mode: 'copy', pattern: '.command.log',
+    publishDir "$outdir/fastqc/$sample", mode: 'copy', pattern: '{*.zip,*.html}',
+        saveAs: {filename -> filename.indexOf('.zip') > 0 ? "zips/$filename" : "$filename"}
+    publishDir "$outdir/fastqc/$sample", mode: 'copy', pattern: '.command.log',
         saveAs: {filename -> 'fastqc.log'}
 
     input:

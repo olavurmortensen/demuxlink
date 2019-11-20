@@ -114,7 +114,10 @@ process merge {
     lane = key[1]
     read = key[2]
     """
-    zcat $sample\\_*$lane\\_$read*.fastq.gz | gzip -c > $sample\\_$lane\\_$read\\_merged.fastq.gz
+    # Note: Piping the zcat output to gzip causes "unexpected end of file" errors sporadically.
+    # Therefore, the zcat and gzip are done in separate steps.
+    zcat $sample\\_*$lane\\_$read*.fastq.gz > $sample\\_$lane\\_$read\\_merged.fastq
+    gzip -k $sample\\_$lane\\_$read\\_merged.fastq
     """
 }
 
